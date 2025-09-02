@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven3'   // Must match your Jenkins Maven configuration
-        jdk 'Java17'     // Must match your Jenkins JDK configuration
+        maven 'Maven3'   // Maven name you configured in Jenkins (Manage Jenkins → Global Tool Configuration)
+        jdk 'Java17'     // JDK name you configured in Jenkins
     }
 
     stages {
@@ -13,23 +13,33 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build with Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean install'
             }
         }
 
-        stage('Deploy') {
+        stage('Package') {
             steps {
-                sh 'docker stop C1 || true'
-                sh 'docker rm C1 || true'
-
-                // Copy the built WAR from this job's workspace
-                sh 'cp target/TomcatMavenApp-2.0.war /tmp/'
-
-                // Deploy on Tomcat container
-                sh 'docker run -d -p 8001:8080 -v /tmp/TomcatMavenApp-2.0.war:/usr/local/tomcat/webapps/TomcatMavenApp-2.0.war --name C1 tomcat:latest'
+                sh 'mvn package'
             }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                sh '''
+                    cp target/*.war /var/lib/tomcat9/webapps/
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Build and Deployment Successful ✅'
+        }
+        failure {
+            echo 'Build Failed ❌'
         }
     }
 }
