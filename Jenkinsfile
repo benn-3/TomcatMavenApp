@@ -1,14 +1,15 @@
 pipeline {
     agent any
+
     tools {
-        maven 'Maven-3.9'  // match the Maven name in Jenkins config
-        jdk 'Java17'       // if required
+        maven 'MAVEN_HOME'   // name configured in Jenkins Global Tool Config
+        jdk 'JAVA_HOME'      // name configured in Jenkins Global Tool Config
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/benn-3/TomcatMavenApp.git', branch: 'master'
+                git branch: 'main', url: 'https://github.com/benn-3/TomcatMavenApp.git'
             }
         }
 
@@ -18,25 +19,10 @@ pipeline {
             }
         }
 
-        stage('Deploy to Tomcat') {
+        stage('Deploy') {
             steps {
-                script {
-                    sh '''
-                    WAR=$(ls target/*.war | head -n 1)
-                    docker cp "$WAR" tomcat-container:/usr/local/tomcat/webapps/ROOT.war
-                    docker restart tomcat-container
-                    '''
-                }
+                sh 'cp target/*.war /var/lib/tomcat9/webapps/'
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Deployed successfully to Tomcat!'
-        }
-        failure {
-            echo 'Build or deploy failed.'
         }
     }
 }
